@@ -1,6 +1,4 @@
 
-using eShop.API.Extensions;
-
 namespace eShop.API;
 
 public class Program
@@ -16,6 +14,13 @@ public class Program
         builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("JwtConfig"));
 
         builder.Services.AddJwtAuthentication(builder.Configuration.GetSection("JwtConfig:Secret").Value!);
+
+        builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+        {
+            options.SignIn.RequireConfirmedAccount = false;
+        })
+        .AddEntityFrameworkStores<EShopDbContext>();
+            
 
         builder.Services.AddControllers();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

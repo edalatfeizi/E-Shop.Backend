@@ -1,7 +1,7 @@
 ﻿
 namespace eShop.Infrastructure.Data;
 
-public class EShopDbContext : DbContext
+public class EShopDbContext : IdentityDbContext
 {
     public EShopDbContext(DbContextOptions options) : base(options)
     {

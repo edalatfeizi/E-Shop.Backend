@@ -4,3 +4,4 @@ global using eShop.Infrastructure.Data;
 global using eShop.Infrastructure.Repositories;
 global using Microsoft.EntityFrameworkCore;
 global using eShop.Domain.Models;
+global using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
