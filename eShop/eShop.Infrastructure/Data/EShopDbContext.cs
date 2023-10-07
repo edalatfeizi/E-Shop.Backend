@@ -9,4 +9,5 @@ public class EShopDbContext : IdentityDbContext
     }
 
     public DbSet<Product> Products { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
 }
