@@ -17,3 +17,5 @@ global using eShop.API.Extensions;
 global using eShop.Infrastructure.Data;
 global using System.IdentityModel.Tokens.Jwt;
 global using System.Security.Claims;
+
+global using eShop.Domain.Models;

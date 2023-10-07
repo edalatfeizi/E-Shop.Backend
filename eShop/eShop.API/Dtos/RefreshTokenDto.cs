@@ -4,9 +4,8 @@ using System.Linq;
 
 namespace eShop.Domain.Models;
 
-public class RefreshToken
+public class RefreshTokenDto
 {
-    public Guid Id { get; set; }
     public Guid UserId { get; set; }
     public string Token { get; set; } = string.Empty;
     public string JwtId { get; set; }

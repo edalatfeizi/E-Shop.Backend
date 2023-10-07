@@ -1,8 +1,7 @@
-﻿namespace eShop.API.Configs
+﻿namespace eShop.API.Configs;
+
+public class JwtConfig
 {
-    public class JwtConfig
-    {
-        public string Secret { get; set; }
-        public TimeSpan ExpiryTimeFrame { get; set; }
-    }
+    public string Secret { get; set; }
+    public TimeSpan ExpiryTimeFrame { get; set; }
 }
