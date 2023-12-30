@@ -1,7 +1,11 @@
 ﻿
+
+
 namespace eShop.Domain.Interfaces.Services;
 
 public interface IProductService
 {
-    Task<List<Product>> GetProductsAsync();
+    Task<ApiResponse<List<ProductDto>>> GetProductsAsync();
+    Task<ApiResponse<ProductDto>> CreateProductAsync(NewProductReqDto productDto);
+
 }

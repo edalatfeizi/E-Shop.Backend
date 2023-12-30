@@ -19,3 +19,8 @@ global using System.IdentityModel.Tokens.Jwt;
 global using System.Security.Claims;
 
 global using eShop.Domain.Models;
+
+global using eShop.Domain.Dtos;
+global using eShop.Domain.Dtos.Request;
+global using eShop.Domain.Dtos.Response;
+global using System.Net;

@@ -4,48 +4,179 @@ namespace eShop.Domain.Services;
 public class AccountService : IAccountService
 {
     private readonly IAccountRepository _accountRepo;
-    public AccountService(IAccountRepository accountRepo)
+    private readonly UserManager<IdentityUser> _userManager;
+    private readonly IConfiguration _configuration;
+    private readonly TokenValidationParameters _tokenValidationParameters;
+    public AccountService(IAccountRepository accountRepository, UserManager<IdentityUser> userManager, IConfiguration configuration, TokenValidationParameters tokenValidationParameters)
     {
-
-        _accountRepo = accountRepo;
+        _accountRepo = accountRepository;
+        _userManager = userManager;
+        _configuration = configuration;
+        _tokenValidationParameters = tokenValidationParameters;
 
     }
-
-    public async Task AddUserRefreshTokenAsync(Guid userId, string token, string jwtId, bool isUsed, bool isRevoked, DateTime addedDate, DateTime expiryDate)
+    public async Task<ApiResponse<AuthResultResDto>> LoginAsync(UserLoginReqDto dto)
     {
-        var refreshToken = new RefreshToken()
+        var existUser = await _userManager.FindByEmailAsync(dto.Email);
+
+        //check user exist
+        if (existUser == null)
+            return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.InvalidCredentials);
+
+        var isValidCredentials = await _userManager.CheckPasswordAsync(existUser, dto.Password);
+
+        //check password correctness
+        if (!isValidCredentials)
+            return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.InvalidCredentials);
+
+        var result = await GenerateJwtToken(existUser);
+
+        return new ApiResponse<AuthResultResDto>((result));
+    }
+
+    public async Task<ApiResponse<AuthResultResDto>> RegisterAsync(UserRegisterReqDto dto)
+    {
+        var existUser = await _userManager.FindByEmailAsync(dto.Email);
+
+        //check user exist
+        if (existUser != null)
+            return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.EmailAlreadyExist);
+
+        //create new user
+        var newUser = new IdentityUser()
         {
-            UserId = userId,
-            Token = token,
-            JwtId = jwtId,
-            IsUsed = isUsed,
-            IsRevoked = isRevoked,
-            AddedDate = addedDate,
-            ExpiryDate = expiryDate
+            Email = dto.Email,
+            UserName = dto.Email,
         };
-        await _accountRepo.AddNewUserRefreshTokenAsync(refreshToken);
-    }
 
-    public async Task<List<RefreshToken>> GetUserRefreshTokensAsync(Guid userId)
-    {
-        var tokens = await _accountRepo.GetUserRefreshTokensAsync(userId);
-
-        return tokens;
-    }
-
-    public async Task UpdateUserRefreshTokenAsync(Guid id, Guid userId, string token, string jwtId, bool isUsed, bool isRevoked, DateTime addedDate, DateTime expiryDate)
-    {
-        var refreshToken = new RefreshToken()
+        var isUserCreated = await _userManager.CreateAsync(newUser, dto.Password);
+        if (isUserCreated.Succeeded)
         {
-            Id = id,
-            UserId = userId,
-            Token = token,
-            JwtId = jwtId,
-            IsUsed = isUsed,
-            IsRevoked = isRevoked,
-            AddedDate = addedDate,
-            ExpiryDate = expiryDate
+            var authResult = await GenerateJwtToken(newUser);
+            return new ApiResponse<AuthResultResDto>(authResult);
+        }
+
+        var errors = new StringBuilder();
+        foreach (var error in isUserCreated.Errors)
+            errors.Append(error.Description);
+
+        return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, errors.ToString());
+
+    }
+
+    public async Task<ApiResponse<AuthResultResDto>> RefreshTokenAsync(TokenReqDto dto)
+    {
+        var jwtTokenHandler = new JwtSecurityTokenHandler();
+
+        _tokenValidationParameters.ValidateLifetime = false; //true for production
+        var tokenInVerification = jwtTokenHandler.ValidateToken(dto.Token, _tokenValidationParameters, out var validatedToken);
+
+        //if received token is generated with a different algorithm than HmacSha256, means token has been manipulated.
+        if (validatedToken is JwtSecurityToken jwtSecurityToken)
+        {
+            var result = jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase);
+
+            if (result == false)
+                return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.InvalidTokens);
+        }
+
+        /*
+        * each jwt token will be expired for example 15 min after it is generated 
+        * so when user wants to refresh it's token, first we check user's jwt token expiration time   
+        * first we add that 15 min to the base unix time and get a datetime indicating expiry time in datetime format 2023/10/26:16:45:30
+        * and then compare that with current datetime for example 2023/10/26:17:00:30 if current time is greater than token expire time, means that token is expired.
+       */
+        var utcExpiryDate = long.Parse(tokenInVerification.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Exp)!.Value);
+
+        var expiryDate = UnixTimeStampToDateTime(utcExpiryDate);
+
+        if (DateTime.UtcNow > expiryDate)
+            return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.ExpiredTokens);
+
+        var userId = tokenInVerification.Claims.FirstOrDefault(x => x.Type == "Id");
+        if (userId == null)
+            return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.InvalidTokens);
+
+        var storedTokens = await _accountRepo.GeUserRefreshTokensAsync(Guid.Parse(userId.Value));
+        var exitRefreshToken = storedTokens.FirstOrDefault(x => x.Token == dto.RefreshToken);
+        if (exitRefreshToken == null || exitRefreshToken.IsUsed || exitRefreshToken.IsRevoked)
+            return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.InvalidTokens);
+
+        //when generate jwt token we set a unique id to it
+        //when user wants to refresh that token we check it's id with stored token's id and if they are different means token is invalid
+        var jti = tokenInVerification.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Jti)!.Value;
+        if (exitRefreshToken.JwtId != jti)
+            return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.InvalidTokens);
+
+        //check if stored refresh token's expiry time is greater than current time, 
+        //if it is, means refresh token is expired and user should login to system again
+        if (exitRefreshToken.ExpiryDate < DateTime.UtcNow)
+            return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.ExpiredTokens);
+
+
+        exitRefreshToken.IsUsed = true;
+        await _accountRepo.UpdateUserRefreshTokenAsync(exitRefreshToken.Id, exitRefreshToken.UserId, exitRefreshToken.Token, exitRefreshToken.JwtId, exitRefreshToken.IsUsed, exitRefreshToken.IsRevoked, exitRefreshToken.AddedDate, exitRefreshToken.ExpiryDate);
+        var user = await _userManager.FindByIdAsync(exitRefreshToken.UserId.ToString());
+
+        var authResult = await GenerateJwtToken(user!);
+
+        return new ApiResponse<AuthResultResDto>(authResult);
+
+
+    }
+
+
+    private async Task<AuthResultResDto> GenerateJwtToken(IdentityUser user)
+    {
+        var jwtTokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes(_configuration.GetSection("JwtConfig:Secret").Value);
+
+        var tokenDescriptor = new SecurityTokenDescriptor()
+        {
+            Subject = new ClaimsIdentity(new[]
+            {
+                new Claim("Id", user.Id),
+                new Claim(JwtRegisteredClaimNames.Sub,user.Email),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat,DateTime.Now.ToUniversalTime().ToString())
+            }),
+            Expires = DateTime.UtcNow.Add(TimeSpan.Parse(_configuration.GetSection("JwtConfig:ExpiryTimeFrame").Value)),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256)
         };
-        await _accountRepo.UpdateUserRefreshTokenAsync(refreshToken);
+
+        var token = jwtTokenHandler.CreateToken(tokenDescriptor);
+        var jwtToken = jwtTokenHandler.WriteToken(token);
+
+        var refreshToken = new RefreshTokenResDto
+        {
+            JwtId = token.Id,
+            Token = RandomStringGenerator(jwtToken.Length),
+            AddedDate = DateTime.UtcNow,
+            ExpiryDate = DateTime.UtcNow.AddMonths(6),
+            IsRevoked = false,
+            IsUsed = false,
+            UserId = Guid.Parse(user.Id),
+        };
+
+        await _accountRepo.AddUserRefreshTokenAsync(refreshToken.UserId, refreshToken.Token, refreshToken.JwtId, refreshToken.IsUsed, refreshToken.IsRevoked, refreshToken.AddedDate, refreshToken.ExpiryDate);
+
+        return new AuthResultResDto() { Result = true, Token = jwtToken, RefreshToken = refreshToken.Token };
+
+
+    }
+
+    private string RandomStringGenerator(int length)
+    {
+        var random = new Random();
+        var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz_";
+        return new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(chars.Length)]).ToArray());
+    }
+
+    private DateTime UnixTimeStampToDateTime(long unixTimeStamp)
+    {
+        var dateTimeVal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+        dateTimeVal = dateTimeVal.AddSeconds(unixTimeStamp).ToUniversalTime();
+        return dateTimeVal;
     }
 }

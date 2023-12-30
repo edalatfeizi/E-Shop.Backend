@@ -3,7 +3,7 @@ namespace eShop.Domain.Interfaces.Repositories;
 
 public interface IAccountRepository
 {
-    public Task<List<RefreshToken>> GetUserRefreshTokensAsync(Guid userId);
-    public Task AddNewUserRefreshTokenAsync(RefreshToken refreshToken);
-    public Task UpdateUserRefreshTokenAsync(RefreshToken refreshToken);
+    Task<RefreshToken> AddUserRefreshTokenAsync(Guid userId, string token, string jwtId, bool isUsed, bool isRevoked, DateTime addedDate, DateTime expiryDate);
+    Task<bool?> UpdateUserRefreshTokenAsync(Guid id, Guid userId, string token, string jwtId, bool isUsed, bool isRevoked, DateTime addedDate, DateTime expiryDate);
+    Task<List<RefreshToken>> GeUserRefreshTokensAsync(Guid userId);
 }

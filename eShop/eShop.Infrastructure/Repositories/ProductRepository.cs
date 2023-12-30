@@ -8,6 +8,17 @@ public class ProductRepository : IProductRepository
     {
         _context = dbContext;
     }
+
+    public async Task<Product> CreateProductAsync(string name, string Image, int countInStock, string description)
+    {
+        var product = new Product { Name = name, Image = Image, CountInStock = countInStock, Description = description };
+
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+
+        return product;
+    }
+
     public async Task<List<Product>> GetProductsAsync()
     {
         var products = await _context.Products.ToListAsync();

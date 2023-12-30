@@ -12,6 +12,7 @@ public static class HostingExtensions
 
         services.AddScoped<IProductRepository,ProductRepository>();
         services.AddScoped<IAccountRepository,AccountRepository>();
+        services.AddScoped(typeof(EShopRepository<>));
 
         return services;
     }
