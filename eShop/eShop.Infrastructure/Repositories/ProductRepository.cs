@@ -13,7 +13,7 @@ public class ProductRepository : IProductRepository
     {
         var product = new Product { Name = name, Image = Image, CountInStock = countInStock, Description = description };
 
-        _context.Products.Add(product);
+        _context.Add(product);
         await _context.SaveChangesAsync();
 
         return product;
@@ -21,7 +21,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<List<Product>> GetProductsAsync()
     {
-        var products = await _context.Products.ToListAsync();
+        var products = await _context.Set<Product>().ToListAsync();
         return products;
     }
 }

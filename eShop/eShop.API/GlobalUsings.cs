@@ -24,3 +24,4 @@ global using eShop.Domain.Dtos;
 global using eShop.Domain.Dtos.Request;
 global using eShop.Domain.Dtos.Response;
 global using System.Net;
+global using eShop.Api.Extentions;
