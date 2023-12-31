@@ -4,10 +4,10 @@ namespace eShop.Domain.Services;
 public class AccountService : IAccountService
 {
     private readonly IAccountRepository _accountRepo;
-    private readonly UserManager<IdentityUser> _userManager;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IConfiguration _configuration;
     private readonly TokenValidationParameters _tokenValidationParameters;
-    public AccountService(IAccountRepository accountRepository, UserManager<IdentityUser> userManager, IConfiguration configuration, TokenValidationParameters tokenValidationParameters)
+    public AccountService(IAccountRepository accountRepository, UserManager<ApplicationUser> userManager, IConfiguration configuration, TokenValidationParameters tokenValidationParameters)
     {
         _accountRepo = accountRepository;
         _userManager = userManager;
@@ -43,7 +43,7 @@ public class AccountService : IAccountService
             return new ApiResponse<AuthResultResDto>((int)HttpStatusCode.BadRequest, ResponseMessages.EmailAlreadyExist);
 
         //create new user
-        var newUser = new IdentityUser()
+        var newUser = new ApplicationUser()
         {
             Email = dto.Email,
             UserName = dto.Email,
@@ -126,7 +126,7 @@ public class AccountService : IAccountService
     }
 
 
-    private async Task<AuthResultResDto> GenerateJwtToken(IdentityUser user)
+    private async Task<AuthResultResDto> GenerateJwtToken(ApplicationUser user)
     {
         var jwtTokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(_configuration.GetSection("JwtConfig:Secret").Value);
@@ -135,7 +135,7 @@ public class AccountService : IAccountService
         {
             Subject = new ClaimsIdentity(new[]
             {
-                new Claim("Id", user.Id),
+                new Claim("Id", user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Sub,user.Email),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
@@ -156,7 +156,7 @@ public class AccountService : IAccountService
             ExpiryDate = DateTime.UtcNow.AddMonths(6),
             IsRevoked = false,
             IsUsed = false,
-            UserId = Guid.Parse(user.Id),
+            UserId = Guid.Parse(user.Id.ToString()),
         };
 
         await _accountRepo.AddUserRefreshTokenAsync(refreshToken.UserId, refreshToken.Token, refreshToken.JwtId, refreshToken.IsUsed, refreshToken.IsRevoked, refreshToken.AddedDate, refreshToken.ExpiryDate);

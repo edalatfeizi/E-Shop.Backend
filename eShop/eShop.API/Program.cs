@@ -1,4 +1,5 @@
 
+
 namespace eShop.API;
 
 public class Program
@@ -15,12 +16,15 @@ public class Program
 
         builder.Services.AddJwtAuthentication(builder.Configuration.GetSection("JwtConfig:Secret").Value!);
 
-        builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+        builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
         {
             options.SignIn.RequireConfirmedAccount = false;
         })
         .AddEntityFrameworkStores<EShopDbContext>();
-            
+
+        builder.Services.AddSwaggerGenCustom();
+
+
 
         builder.Services.AddControllers();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -32,9 +36,18 @@ public class Program
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
-            app.UseSwagger();
-            app.UseSwaggerUI();
+            app.UseExceptionHandler("/error-dev");
+            //app.UseDeveloperExceptionPage();
+            //app.UseSwagger();
+            //app.UseSwaggerUI();
         }
+        else
+        {
+            app.UseExceptionHandler("/error");
+        }
+
+        app.UseSwagger();
+        app.UseSwaggerUI();
 
         app.UseHttpsRedirection();
 

@@ -21,7 +21,7 @@ public class AccountRepository : IAccountRepository
             ExpiryDate = expiryDate
         };
 
-        await _context.RefreshTokens.AddAsync(refreshToken);
+        await _context.AddAsync(refreshToken);
         await _context.SaveChangesAsync();
 
         return refreshToken;
@@ -29,7 +29,7 @@ public class AccountRepository : IAccountRepository
 
     public async Task<bool?> UpdateUserRefreshTokenAsync(Guid id, Guid userId, string token, string jwtId, bool isUsed, bool isRevoked, DateTime addedDate, DateTime expiryDate)
     {
-        var existToken = await _context.RefreshTokens.FirstOrDefaultAsync(x => x.Id == id);
+        var existToken = await _context.Set<RefreshToken>().FirstOrDefaultAsync(x => x.Id == id);
         if (existToken != null)
         {
             existToken.Token = token;
@@ -47,7 +47,7 @@ public class AccountRepository : IAccountRepository
 
     public Task<List<RefreshToken>> GeUserRefreshTokensAsync(Guid userId)
     {
-        var tokens = _context.RefreshTokens.Where(x => x.UserId == userId).ToListAsync();
+        var tokens = _context.Set<RefreshToken>().Where(x => x.UserId == userId).ToListAsync();
         return tokens;
     }
 }
