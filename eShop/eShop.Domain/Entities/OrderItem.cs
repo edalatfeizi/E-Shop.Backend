@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace eShop.Domain.Models
+namespace eShop.Domain.Entities
 {
     public class OrderItem
     {
@@ -17,9 +17,9 @@ namespace eShop.Domain.Models
 
         public OrderItem(Guid productId, int quantity, decimal unitPrice)
         {
-            this.ProductId = productId;
-            this.Quantity = quantity;
-            this.UnitPrice = unitPrice;
+            ProductId = productId;
+            Quantity = quantity;
+            UnitPrice = unitPrice;
         }
     }
 }

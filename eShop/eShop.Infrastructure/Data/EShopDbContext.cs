@@ -1,5 +1,6 @@
 ﻿
 using System.Reflection;
+using eShop.Domain.Entities;
 
 namespace eShop.Infrastructure.Data;
 

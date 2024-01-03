@@ -1,4 +1,6 @@
 ﻿
+using eShop.Domain.Entities;
+
 namespace eShop.Domain.Interfaces.Repositories;
 
 public interface IAccountRepository
