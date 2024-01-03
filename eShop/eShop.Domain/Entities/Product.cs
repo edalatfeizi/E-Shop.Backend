@@ -1,5 +1,4 @@
-﻿
-namespace eShop.Domain.Models;
+﻿namespace eShop.Domain.Entities;
 
 public class Product
 {

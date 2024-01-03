@@ -1,5 +1,7 @@
 
 
+using eShop.Domain.Entities;
+
 namespace eShop.API;
 
 public class Program
@@ -24,7 +26,7 @@ public class Program
 
         builder.Services.AddSwaggerGenCustom();
 
-
+        builder.Services.AddCorsPolicies(builder.Configuration.GetSection("CorsSettings"));
 
         builder.Services.AddControllers();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -54,7 +56,7 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
 
-
+        app.UseCorsPolicies();
         app.MapControllers();
 
         app.Run();

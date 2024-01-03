@@ -1,4 +1,5 @@
 ﻿using Ardalis.Specification;
+using eShop.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;

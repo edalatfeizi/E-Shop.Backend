@@ -1,4 +1,6 @@
 ﻿
+using eShop.Domain.Entities;
+
 namespace eShop.Infrastructure.Repositories;
 
 public class ProductRepository : IProductRepository
