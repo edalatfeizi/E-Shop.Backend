@@ -1,4 +1,5 @@
-﻿using System;
+﻿using eShop.Domain.Entities.Base;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace eShop.Domain.Entities
 {
-    public class Order
+    public class Order : TrackableEntity<Guid>
     {
-        public Guid Id { get; set; }
         public string ShippingAdress1 { get; set; } = string.Empty;
         public string ShippingAdress2 { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;

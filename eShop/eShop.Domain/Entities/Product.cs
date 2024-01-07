@@ -1,8 +1,9 @@
-﻿namespace eShop.Domain.Entities;
+﻿using eShop.Domain.Entities.Base;
 
-public class Product
+namespace eShop.Domain.Entities;
+
+public class Product: TrackableEntity<Guid>
 {
-    public Guid Id { get; set; }
     public string Name { get; set; }
     public string Description { get; set; } = string.Empty;
     public string RichDescription { get; set; } = string.Empty;
